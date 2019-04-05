@@ -1,63 +1,242 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Welcome to Firebase Hosting</title>
-
-    <!-- update the version number as needed -->
-    <script defer src="/__/firebase/5.9.2/firebase-app.js"></script>
-    <!-- include only the Firebase features as you need -->
-    <script defer src="/__/firebase/5.9.2/firebase-auth.js"></script>
-    <script defer src="/__/firebase/5.9.2/firebase-database.js"></script>
-    <script defer src="/__/firebase/5.9.2/firebase-messaging.js"></script>
-    <script defer src="/__/firebase/5.9.2/firebase-storage.js"></script>
-    <!-- initialize the SDK after all desired features are loaded -->
-    <script defer src="/__/firebase/init.js"></script>
-
-    <style media="screen">
-      body { background: #ECEFF1; color: rgba(0,0,0,0.87); font-family: Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 0; }
-      #message { background: white; max-width: 360px; margin: 100px auto 16px; padding: 32px 24px; border-radius: 3px; }
-      #message h2 { color: #ffa100; font-weight: bold; font-size: 16px; margin: 0 0 8px; }
-      #message h1 { font-size: 22px; font-weight: 300; color: rgba(0,0,0,0.6); margin: 0 0 16px;}
-      #message p { line-height: 140%; margin: 16px 0 24px; font-size: 14px; }
-      #message a { display: block; text-align: center; background: #039be5; text-transform: uppercase; text-decoration: none; color: white; padding: 16px; border-radius: 4px; }
-      #message, #message a { box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24); }
-      #load { color: rgba(0,0,0,0.4); text-align: center; font-size: 13px; }
-      @media (max-width: 600px) {
-        body, #message { margin-top: 0; background: white; box-shadow: none; }
-        body { border-top: 16px solid #ffa100; }
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>
+      EDCAN URL Shortener
+    </title>
+    <link rel="icon" href="favicon.png" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Material+Icons" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/font-nanumsquare/1.0.0/nanumsquare.css?ver=4.9.8" />
+    <link rel="stylesheet" href="https://unpkg.com/vuetify/dist/vuetify.min.css" />
+    <style>
+      html {
+        height: 100%;
+        overflow: hidden;
+      }
+      body {
+        background: #fafafa;
+        word-break: keep-all;
+      }
+      .body,
+      .application,
+      .display-4,
+      .display-3,
+      .display-2,
+      .display-1,
+      .headline,
+      .title {
+        font-family: "Nanum Square", sans-serif;
       }
     </style>
   </head>
   <body>
-    <div id="message">
-      <h2>Welcome</h2>
-      <h1>Firebase Hosting Setup Complete</h1>
-      <p>You're seeing this because you've successfully setup Firebase Hosting. Now it's time to go build something extraordinary!</p>
-      <a target="_blank" href="https://firebase.google.com/docs/hosting/">Open Hosting Documentation</a>
-    </div>
-    <p id="load">Firebase SDK Loading&hellip;</p>
+    <main>
+      <v-app :dark="pageView">
+        <v-layout v-if="pageView" align-center justify-center row>
+          <v-flex xs11 sm8 md6>
+            <h1 class="mb-3" v-text="'EDCAN URL Shortener'"></h1>
+            <v-form ref="form" v-model="form">
+              <v-textarea v-model="origin" class="mb-2" label="URL 입력" :rules="[rules.required, rules.url]" hint="HTTPS 프로토콜만 단축 가능합니다." rows="1" autofocus auto-grow></v-textarea>
+              <v-btn @click="loader = 'loading', shorten()" :disabled="loading || !form" :loading="loading" v-text="'단축'"></v-btn>
+            </v-form>
+          </v-flex>
+        </v-layout>
 
+        <v-dialog v-model="dialog" persistent max-width="600px">
+          <v-card>
+            <v-card-title>
+              <span class="headline" v-text="'알림'"></span>
+            </v-card-title>
+            <v-card-text>
+              <v-layout align-center justify-center class="subheading mb-4" v-html="dialogMsg"></v-layout>
+            </v-card-text>
+            <v-card-actions>
+              <v-spacer></v-spacer>
+              <v-btn v-if="!dialogReload" color="info" @click="dialog = false" v-text="'승인'"></v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-dialog>
+
+        <v-dialog v-model="dialogComplete" persistent max-width="600px">
+          <v-card>
+            <v-card-title>
+              <span class="headline" v-text="'URL 단축 성공'"></span>
+            </v-card-title>
+            <v-card-text>
+              <v-layout align-center justify-center>
+                <v-text-field id="urlDisplay" onclick="this.select();this.setSelectionRange(0,this.value.length)" :value="'https://l.edcan.kr/' + url" readonly></v-text-field>
+                <v-btn icon @click="copy()"><v-icon v-text="'file_copy'"></v-icon></v-btn>
+              </v-layout>
+            </v-card-text>
+            <v-card-actions>
+              <v-spacer></v-spacer>
+              <v-btn light @click="origin = '', url = '', dialogComplete = false" v-text="'닫기'"></v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-dialog>
+      </v-app>
+    </main>
+    <noscript>
+      <style>
+        main {
+          display: none;
+        }
+      </style>
+      <div style="display:flex;align-items:center;justify-content:center;position:fixed;width:100%;height:100%;top:0;left:0;background:#1E1E1E;color:white;font-family:'Nanum Square',sans-serif;z-index:1000;">
+        <h1>
+          EDCANURL Shortner 구동을 위해서 JavaScript가 필요합니다.
+        </h1>
+      </div>
+    </noscript>
+    <script src="https://unpkg.com/vue/dist/vue.js"></script>
+    <script src="https://unpkg.com/vuetify/dist/vuetify.min.js"></script>
+    <script src="/__/firebase/5.9.1/firebase-app.js"></script>
+    <script src="/__/firebase/5.9.1/firebase-auth.js"></script>
+    <script src="/__/firebase/5.9.1/firebase-firestore.js"></script>
     <script>
-      document.addEventListener('DOMContentLoaded', function() {
-        // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
-        // // The Firebase SDK is initialized and available here!
-        //
-        // firebase.auth().onAuthStateChanged(user => { });
-        // firebase.database().ref('/path/to/ref').on('value', snapshot => { });
-        // firebase.messaging().requestPermission().then(() => { });
-        // firebase.storage().ref('/path/to/ref').getDownloadURL().then(() => { });
-        //
-        // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
+      if (/*@cc_on!@*/ false) {
+        location.replace("https://cdn.hyunwoo.kim/no_IE/#EDCAN_URL_Shortner");
+      }
+      firebase.initializeApp({
+        apiKey: "AIzaSyDgLQ4IHI2gv3-NYyYB10SfCOhz5vF4YtM",
+        authDomain: "edcan-url.firebaseapp.com",
+        databaseURL: "https://edcan-url.firebaseio.com",
+        projectId: "edcan-url",
+        storageBucket: "edcan-url.appspot.com",
+        messagingSenderId: "832850231119"
+      });
+      firebase.auth().signInAnonymously();
+      const dbRef = firebase.firestore().collection("URLs"),
+        hashStr = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789",
+        expression = /^(https:\/\/www\.|https:\/\/)?[a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,5}(:[0-9]{1,5})?(\/.*)?$/g,
+        regex = new RegExp(expression);
+      var v = new Vue({
+        el: "v-app",
+        data: () => ({
+          dialog: false,
+          dialogMsg: null,
+          dialogReload: false,
+          dialogComplete: false,
+          loader: null,
+          loading: false,
+          origin: "",
+          url: "",
+          pageView: false,
+          form: false,
+          rules: {
+            required: value => !!value || "필수 사항입니다.",
+            url: value => {
+              return value.match(regex) || "올바르지 않은 URL 형식.";
+            }
+          }
+        }),
 
-        try {
-          let app = firebase.app();
-          let features = ['auth', 'database', 'messaging', 'storage'].filter(feature => typeof app[feature] === 'function');
-          document.getElementById('load').innerHTML = `Firebase SDK loaded with ${features.join(', ')}`;
-        } catch (e) {
-          console.error(e);
-          document.getElementById('load').innerHTML = 'Error loading the Firebase SDK, check the console.';
+        watch: {
+          loader() {
+            const l = this.loader;
+            this[l] = !this[l];
+            setTimeout(() => (this[l] = false), 5000);
+            this.loader = null;
+          }
+        },
+
+        created: function() {
+          if (!!window.location.pathname && window.location.pathname !== "/") {
+            dbRef
+              .doc(window.location.pathname.substr(1))
+              .get()
+              .then(function(doc) {
+                if (doc.exists) {
+                  location.replace(doc.data().origin);
+                } else {
+                  v.dialogShow("URL이 올바르지 않습니다.", true);
+                }
+              })
+              .catch(function(error) {
+                v.dialogShow("데이터를 읽어들이지 못하였습니다.", true);
+                console.log("데이터를 읽어들이지 못하였습니다: ", error);
+              });
+          } else if (!!location.hash && location.hash !== "#") {
+            dbRef
+              .doc(location.hash.substr(1))
+              .get()
+              .then(function(doc) {
+                if (doc.exists) {
+                  location.replace(doc.data().origin);
+                } else {
+                  v.dialogShow("URL이 올바르지 않습니다.", true);
+                }
+              })
+              .catch(function(error) {
+                v.dialogShow("데이터를 읽어들이지 못하였습니다.", true);
+                console.log("데이터를 읽어들이지 못하였습니다: ", error);
+              });
+          } else {
+            this.pageView = true;
+          }
+        },
+
+        methods: {
+          dialogShow(msg, reload) {
+            this.dialog = true;
+            this.dialogMsg = msg;
+            this.dialogReload = reload;
+          },
+          shorten() {
+            v.rand();
+            dbRef
+              .doc(v.url)
+              .get()
+              .then(function(doc) {
+                if (!doc.exists) {
+                  v.complete();
+                } else {
+                  v.shorten();
+                }
+              })
+              .catch(function(error) {
+                v.dialogShow("URL을 단축하지 못하였습니다.", true);
+                console.log("URL을 단축하지 못하였습니다: ", error);
+              });
+          },
+          rand() {
+            this.url = "";
+            for (let i = 0; i < 4; i++) {
+              this.url += hashStr.charAt(Math.floor(Math.random() * hashStr.length));
+            }
+          },
+          complete() {
+            dbRef
+              .doc(v.url)
+              .set({
+                created: firebase.firestore.FieldValue.serverTimestamp(),
+                origin: v.origin
+              })
+              .then(function() {
+                v.dialogComplete = true;
+                setTimeout(function() {
+                  document.querySelector("#urlDisplay").focus();
+                  document.querySelector("#urlDisplay").select();
+                }, 600);
+              })
+              .catch(function(error) {
+                v.dialogShow("URL을 단축하지 못하였습니다.", true);
+                console.log("URL을 단축하지 못하였습니다: ", error);
+              });
+          },
+          copy() {
+            let el = document.createElement("textarea");
+            el.value = "https://l.edcan.kr/" + this.url;
+            document.body.appendChild(el);
+            el.select();
+            document.execCommand("cut");
+            if (!el.value || el.value == "" || el.value == null || el.value == undefined) {
+              alert("[EDCAN URL Shortner]\n\n브라우저에서 클립보드 복사를 지원하지 않습니다.\n생성된 URL을 수동으로 복사하여 주십시오.");
+            }
+            document.body.removeChild(el);
+          }
         }
       });
     </script>
