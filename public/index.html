@@ -3,9 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>
-      EDCAN URL Shortener
-    </title>
+    <title>EDCAN URL Shortener</title>
     <link rel="icon" href="favicon.png" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Material+Icons" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/font-nanumsquare/1.0.0/nanumsquare.css?ver=4.9.8" />
@@ -29,17 +27,38 @@
       .title {
         font-family: "Nanum Square", sans-serif;
       }
+      .logo-white {
+        padding: 20px;
+        height: 30px;
+        background: url(logo-white.png) center no-repeat;
+        background-size: contain;
+      }
+      .divider {
+        height: 30px;
+        border-right: 2px solid #fff;
+      }
     </style>
   </head>
   <body>
     <main>
       <v-app :dark="pageView">
+        <v-snackbar v-model="snackbar" :timeout="3000" top>
+          <span v-html="snackbarMsg"></span>
+          <v-btn color="pink" flat @click="snackbar = false" v-text="'승인'"></v-btn>
+        </v-snackbar>
+
         <v-layout v-if="pageView" align-center justify-center row>
           <v-flex xs11 sm8 md6>
-            <h1 class="mb-3" v-text="'EDCAN URL Shortener'"></h1>
-            <v-form ref="form" v-model="form">
-              <v-textarea v-model="origin" class="mb-2" label="URL 입력" :rules="[rules.required, rules.url]" hint="HTTPS 프로토콜만 단축 가능합니다." rows="1" autofocus auto-grow></v-textarea>
-              <v-btn @click="loader = 'loading', shorten()" :disabled="loading || !form" :loading="loading" v-text="'단축'"></v-btn>
+            <v-layout align-center>
+              <div :class="'logo-white'"></div>
+              <div :class="'ml-3 divider'"></div>
+              <h1 class="ml-3" v-text="'URL Shortener'"></h1>
+            </v-layout>
+            <v-form ref="form" v-model="form" onsubmit="return false">
+              <v-layout class="mt-4">
+                <v-text-field v-model="origin" label="URL 입력" color="#00B8D4" :rules="[rules.required, rules.url]" hint="단축된 URL은 공개되며 누구나 액세스할 수 있음" type="url" autofocus required></v-text-field>
+                <v-btn flat color="#00B8D4" @click="loader = 'loading', shorten()" :disabled="loading || !form" :loading="loading"><v-icon class="mr-1" v-text="'flash_on'"></v-icon><span v-text="'URL 단축'"></span></v-btn>
+              </v-layout>
             </v-form>
           </v-flex>
         </v-layout>
@@ -61,12 +80,10 @@
 
         <v-dialog v-model="dialogComplete" persistent max-width="600px">
           <v-card>
-            <v-card-title>
-              <span class="headline" v-text="'URL 단축 성공'"></span>
-            </v-card-title>
+            <v-card-title> <span class="headline mr-2" v-text="'URL 단축 완료'"></span><v-icon v-text="'link'"></v-icon> </v-card-title>
             <v-card-text>
               <v-layout align-center justify-center>
-                <v-text-field id="urlDisplay" onclick="this.select();this.setSelectionRange(0,this.value.length)" :value="'https://l.edcan.kr/' + url" readonly></v-text-field>
+                <v-text-field id="urlDisplay" color="#00B8D4" onclick="this.select();this.setSelectionRange(0,this.value.length)" :value="'https://l.edcan.kr/' + url" readonly></v-text-field>
                 <v-btn icon @click="copy()"><v-icon v-text="'file_copy'"></v-icon></v-btn>
               </v-layout>
             </v-card-text>
@@ -90,7 +107,7 @@
         </h1>
       </div>
     </noscript>
-    <script src="https://unpkg.com/vue/dist/vue.js"></script>
+    <script src="https://unpkg.com/vue/dist/vue.min.js"></script>
     <script src="https://unpkg.com/vuetify/dist/vuetify.min.js"></script>
     <script src="/__/firebase/5.9.1/firebase-app.js"></script>
     <script src="/__/firebase/5.9.1/firebase-auth.js"></script>
@@ -115,6 +132,8 @@
       var v = new Vue({
         el: "v-app",
         data: () => ({
+          snackbar: false,
+          snackbarMsg: "",
           dialog: false,
           dialogMsg: null,
           dialogReload: false,
@@ -128,7 +147,7 @@
           rules: {
             required: value => !!value || "필수 사항입니다.",
             url: value => {
-              return value.match(regex) || "올바르지 않은 URL 형식.";
+              return value.match(regex) || "HTTPS 프로토콜의 URL만 단축 가능.";
             }
           }
         }),
@@ -149,7 +168,7 @@
               .get()
               .then(function(doc) {
                 if (doc.exists) {
-                  location.replace(doc.data().origin);
+                  location.replace(doc.data().origin.search("https://") === 0 ? doc.data().origin : "https://" + doc.data().origin);
                 } else {
                   v.dialogShow("URL이 올바르지 않습니다.", true);
                 }
@@ -164,7 +183,7 @@
               .get()
               .then(function(doc) {
                 if (doc.exists) {
-                  location.replace(doc.data().origin);
+                  location.replace(doc.data().origin.search("https://") === 0 ? doc.data().origin : "https://" + doc.data().origin);
                 } else {
                   v.dialogShow("URL이 올바르지 않습니다.", true);
                 }
@@ -179,6 +198,10 @@
         },
 
         methods: {
+          snackbarShow(msg) {
+            this.snackbar = true;
+            this.snackbarMsg = msg;
+          },
           dialogShow(msg, reload) {
             this.dialog = true;
             this.dialogMsg = msg;
@@ -219,7 +242,7 @@
                 setTimeout(function() {
                   document.querySelector("#urlDisplay").focus();
                   document.querySelector("#urlDisplay").select();
-                }, 600);
+                }, 500);
               })
               .catch(function(error) {
                 v.dialogShow("URL을 단축하지 못하였습니다.", true);
@@ -232,8 +255,10 @@
             document.body.appendChild(el);
             el.select();
             document.execCommand("cut");
-            if (!el.value || el.value == "" || el.value == null || el.value == undefined) {
-              alert("[EDCAN URL Shortner]\n\n브라우저에서 클립보드 복사를 지원하지 않습니다.\n생성된 URL을 수동으로 복사하여 주십시오.");
+            if (el.value != "https://l.edcan.kr/" + v.url) {
+              v.snackbarShow("브라우저에서 클립보드 복사를 지원하지 않습니다.<br>생성된 URL을 수동으로 복사하여 주십시오.");
+            } else {
+              v.snackbarShow("복사되었습니다.");
             }
             document.body.removeChild(el);
           }
