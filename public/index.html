@@ -30,7 +30,7 @@
       .logo-white {
         padding: 20px;
         height: 30px;
-        background: url(logo-white.png) center no-repeat;
+        background: url("logo-white.png") center no-repeat;
         background-size: contain;
       }
       .divider {
@@ -173,9 +173,8 @@
                   v.dialogShow("URL이 올바르지 않습니다.", true);
                 }
               })
-              .catch(function(error) {
-                v.dialogShow("데이터를 읽어들이지 못하였습니다.", true);
-                console.log("데이터를 읽어들이지 못하였습니다: ", error);
+              .catch(() => {
+                location.reload();
               });
           } else if (!!location.hash && location.hash !== "#") {
             dbRef
@@ -188,9 +187,8 @@
                   v.dialogShow("URL이 올바르지 않습니다.", true);
                 }
               })
-              .catch(function(error) {
-                v.dialogShow("데이터를 읽어들이지 못하였습니다.", true);
-                console.log("데이터를 읽어들이지 못하였습니다: ", error);
+              .catch(() => {
+                location.reload();
               });
           } else {
             this.pageView = true;
