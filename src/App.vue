@@ -146,9 +146,14 @@ export default {
       for (let i = 0; i < 4; i++) {
         this.url += hashStr.charAt(Math.floor(Math.random() * hashStr.length));
       }
-      if (this.origin.search("https://") != 0) {
+      if (this.origin.search("https://") !== 0) {
         // 주소에 HTTPS 프로토콜이 없는 경우 URL 가공
         this.origin = "https://" + this.origin;
+      }
+      if(this.origin.search("l.edcan.kr") !== -1){
+        // https://l.edcan.kr/* 금지
+        this.snackbarShow("단축할 수 없는 URL입니다.");
+        return;
       }
       dbRef
         .where("origin", "==", v.origin)
